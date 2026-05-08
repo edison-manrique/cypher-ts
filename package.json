@@ -1,13 +1,33 @@
 {
-  "name": "aes-ts",
+  "name": "cypher-ts",
   "version": "0.1.0",
-  "description": "High-performance AES encryption library in TypeScript",
+  "description": "Librería de criptografía de alto rendimiento en TypeScript puro (AES, ChaCha20, Salsa20, GCM, Poly1305)",
   "type": "module",
-  "main": "./modes/index",
-  "scripts": {
-    "test": "npx tsx tests/cbc.test.ts",
-    "bench": "npx tsx benchmarks/cbc.bench.ts"
+  "main": "./src/index.ts",
+  "publishConfig": {
+    "access": "public"
   },
+  "scripts": {
+    "test": "bun test tests/*.test.ts",
+    "bench": "bun tests/benchmarks/gcm.bench.ts",
+    "prepublishOnly": "bun test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/edison-manrique/cypher-ts.git"
+  },
+  "keywords": [
+    "crypto",
+    "aes",
+    "chacha20",
+    "salsa20",
+    "gcm",
+    "poly1305",
+    "typescript",
+    "high-performance"
+  ],
+  "author": "Edison Manrique",
+  "license": "MIT",
   "devDependencies": {
     "tsx": "^4.7.0"
   },
