@@ -1,0 +1,13 @@
+# Ignorar archivos de desarrollo en el paquete final
+node_modules/
+tests/
+benchmarks/
+*.test.ts
+*.bench.ts
+.git/
+.ai/
+bun.lock
+package-lock.json
+tsconfig.json
+benchmarks.md
+tests.md
