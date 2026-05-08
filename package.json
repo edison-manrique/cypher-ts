@@ -1,0 +1,17 @@
+{
+  "name": "aes-ts",
+  "version": "0.1.0",
+  "description": "High-performance AES encryption library in TypeScript",
+  "type": "module",
+  "main": "./modes/index",
+  "scripts": {
+    "test": "npx tsx tests/cbc.test.ts",
+    "bench": "npx tsx benchmarks/cbc.bench.ts"
+  },
+  "devDependencies": {
+    "tsx": "^4.7.0"
+  },
+  "dependencies": {
+    "@noble/ciphers": "^2.1.1"
+  }
+}
