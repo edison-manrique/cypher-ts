@@ -1,14 +1,21 @@
 /**
  * @module ctr-cmac.bench
  * Benchmark para AES-CTR y AES-CMAC.
- * Compara Cypher-TS contra @noble/ciphers.
+ * Compara Cypher-TS contra @noble/ciphers si está disponible.
  */
 
-import { ctr as nobleCtr, cmac as nobleCmac } from "@noble/ciphers/aes.js"
 import { CTR } from "../../src/aes/ctr"
 import { CMAC } from "../../src/aes/cmac"
 
 process.chdir(import.meta.dir)
+
+let nobleCtr: any = null
+let nobleCmac: any = null
+try {
+  const noble = await import("@noble/ciphers/aes.js")
+  nobleCtr = noble.ctr
+  nobleCmac = noble.cmac
+} catch (e) {}
 
 const WARMUP = 3
 const BENCH_MS = 2000
@@ -62,12 +69,14 @@ for (const ds of sizes) {
   const rOur = bench(`Cypher-TS CTR ${ds.name}`, ds.bytes, () => {
     new CTR(key, nonce).encrypt(data)
   })
-  const rNob = bench(`Noble CTR ${ds.name}`, ds.bytes, () => {
-    nobleCtr(key, nonce).encrypt(data)
-  })
-
   console.log(fmt(rOur))
-  console.log(fmt(rNob))
+
+  if (nobleCtr) {
+    const rNob = bench(`Noble CTR ${ds.name}`, ds.bytes, () => {
+      nobleCtr(key, nonce).encrypt(data)
+    })
+    console.log(fmt(rNob))
+  }
   console.log()
 }
 
@@ -83,12 +92,14 @@ for (const ds of sizes) {
   const rOur = bench(`Cypher-TS CMAC ${ds.name}`, ds.bytes, () => {
     CMAC.digest(key16, data)
   })
-  const rNob = bench(`Noble CMAC ${ds.name}`, ds.bytes, () => {
-    nobleCmac(key16, data)
-  })
-
   console.log(fmt(rOur))
-  console.log(fmt(rNob))
+
+  if (nobleCmac) {
+    const rNob = bench(`Noble CMAC ${ds.name}`, ds.bytes, () => {
+      nobleCmac(key16, data)
+    })
+    console.log(fmt(rNob))
+  }
   console.log()
 }
 

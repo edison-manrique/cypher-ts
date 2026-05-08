@@ -1,13 +1,21 @@
 /**
  * @module gcm.bench
  * Benchmark para AES-GCM: mide throughput de encrypt/decrypt.
- * Compara Cypher-TS contra @noble/ciphers.
+ * Compara Cypher-TS contra @noble/ciphers si está disponible.
  */
 
-import { gcm as nobleGcm } from "@noble/ciphers/aes.js"
 import { GCM } from "../../src/aes"
 
 process.chdir(import.meta.dir)
+
+// Intentar importar Noble opcionalmente
+let nobleGcm: any = null
+try {
+  const noble = await import("@noble/ciphers/aes.js")
+  nobleGcm = noble.gcm
+} catch (e) {
+  // Noble no disponible
+}
 
 const WARMUP = 3
 const BENCH_MS = 2000
@@ -58,8 +66,7 @@ for (const ds of sizes) {
 
   // Pre-encrypt for decrypt bench
   const ourEnc = new GCM(key, nonce).encrypt(data)
-  const nobleEnc = nobleGcm(key, nonce).encrypt(data)
-
+  
   console.log(`── AES-256-GCM: ${ds.name} ──\n`)
 
   const rOurEnc = bench(`Cypher-TS Encrypt ${ds.name}`, ds.bytes, () => {
@@ -68,17 +75,22 @@ for (const ds of sizes) {
   const rOurDec = bench(`Cypher-TS Decrypt ${ds.name}`, ds.bytes, () => {
     new GCM(key, nonce).decrypt(ourEnc)
   })
-  const rNobEnc = bench(`Noble Encrypt ${ds.name}`, ds.bytes, () => {
-    nobleGcm(key, nonce).encrypt(data)
-  })
-  const rNobDec = bench(`Noble Decrypt ${ds.name}`, ds.bytes, () => {
-    nobleGcm(key, nonce).decrypt(nobleEnc)
-  })
 
   console.log(fmt(rOurEnc))
   console.log(fmt(rOurDec))
-  console.log(fmt(rNobEnc))
-  console.log(fmt(rNobDec))
+
+  if (nobleGcm) {
+    const nobleEnc = nobleGcm(key, nonce).encrypt(data)
+    const rNobEnc = bench(`Noble Encrypt ${ds.name}`, ds.bytes, () => {
+      nobleGcm(key, nonce).encrypt(data)
+    })
+    const rNobDec = bench(`Noble Decrypt ${ds.name}`, ds.bytes, () => {
+      nobleGcm(key, nonce).decrypt(nobleEnc)
+    })
+    console.log(fmt(rNobEnc))
+    console.log(fmt(rNobDec))
+  }
+
   console.log()
 }
 

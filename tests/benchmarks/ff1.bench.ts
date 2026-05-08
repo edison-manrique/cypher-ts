@@ -1,13 +1,18 @@
 /**
  * @module ff1.bench
  * Benchmark para FPE-FF1.
- * Compara Cypher-TS contra @noble/ciphers.
+ * Compara Cypher-TS contra @noble/ciphers si está disponible.
  */
 
 import { FF1 } from "../../src/aes/ff1"
-import { FF1 as nobleFF1 } from "@noble/ciphers/ff1.js"
 
 process.chdir(import.meta.dir)
+
+let nobleFF1: any = null
+try {
+  const noble = await import("@noble/ciphers/ff1.js")
+  nobleFF1 = noble.FF1
+} catch (e) {}
 
 const WARMUP = 3
 const BENCH_MS = 2000
@@ -61,13 +66,15 @@ for (const cfg of configs) {
 
   const rOurEnc = bench(`Cypher-TS FF1 Encrypt`, () => { new FF1(cfg.radix, key, tweak).encrypt(x) })
   const rOurDec = bench(`Cypher-TS FF1 Decrypt`, () => { new FF1(cfg.radix, key, tweak).decrypt(ourEnc) })
-  const rNobEnc = bench(`Noble FF1 Encrypt`, () => { nobleFF1(cfg.radix, key, tweak).encrypt(x) })
-  const rNobDec = bench(`Noble FF1 Decrypt`, () => { nobleFF1(cfg.radix, key, tweak).decrypt(ourEnc) })
-
   console.log(fmt(rOurEnc))
   console.log(fmt(rOurDec))
-  console.log(fmt(rNobEnc))
-  console.log(fmt(rNobDec))
+
+  if (nobleFF1) {
+    const rNobEnc = bench(`Noble FF1 Encrypt`, () => { nobleFF1(cfg.radix, key, tweak).encrypt(x) })
+    const rNobDec = bench(`Noble FF1 Decrypt`, () => { nobleFF1(cfg.radix, key, tweak).decrypt(ourEnc) })
+    console.log(fmt(rNobEnc))
+    console.log(fmt(rNobDec))
+  }
   console.log()
 }
 

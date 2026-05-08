@@ -1,13 +1,18 @@
 /**
  * @module cbc.bench
  * Benchmark para AES-CBC: mide throughput de encrypt/decrypt.
- * Compara Cypher-TS contra @noble/ciphers.
+ * Compara Cypher-TS contra @noble/ciphers si está disponible.
  */
 
-import { cbc as nobleCbc } from "@noble/ciphers/aes.js"
 import { CBC } from "../../src/aes"
 
 process.chdir(import.meta.dir)
+
+let nobleCbc: any = null
+try {
+  const noble = await import("@noble/ciphers/aes.js")
+  nobleCbc = noble.cbc
+} catch (e) {}
 
 const WARMUP = 3
 const BENCH_MS = 2000
@@ -48,7 +53,7 @@ const sizes = [
   { name: "10MB", bytes: 10 * 1024 * 1024 }
 ]
 
-const key = new Uint8Array(32) // AES-256
+const key = new Uint8Array(32)
 for (let i = 0; i < 32; i++) key[i] = i ^ 0xaa
 const iv = new Uint8Array(16).fill(0xab)
 
@@ -56,9 +61,7 @@ for (const ds of sizes) {
   const data = new Uint8Array(ds.bytes)
   for (let i = 0; i < ds.bytes; i++) data[i] = i & 0xff
 
-  // Pre-encrypt for decrypt bench (sin padding para simplificar benchmark de core)
   const ourEnc = new CBC(key, iv, { disablePadding: true }).encrypt(data)
-  const nobleEnc = nobleCbc(key, iv).encrypt(data)
 
   console.log(`── AES-256-CBC: ${ds.name} ──\n`)
 
@@ -68,17 +71,18 @@ for (const ds of sizes) {
   const rOurDec = bench(`Cypher-TS Decrypt ${ds.name}`, ds.bytes, () => {
     new CBC(key, iv, { disablePadding: true }).decrypt(ourEnc)
   })
-  const rNobEnc = bench(`Noble Encrypt ${ds.name}`, ds.bytes, () => {
-    nobleCbc(key, iv).encrypt(data)
-  })
-  const rNobDec = bench(`Noble Decrypt ${ds.name}`, ds.bytes, () => {
-    nobleCbc(key, iv).decrypt(nobleEnc)
-  })
 
   console.log(fmt(rOurEnc))
   console.log(fmt(rOurDec))
-  console.log(fmt(rNobEnc))
-  console.log(fmt(rNobDec))
+
+  if (nobleCbc) {
+    const nobleEnc = nobleCbc(key, iv).encrypt(data)
+    const rNobEnc = bench(`Noble Encrypt ${ds.name}`, ds.bytes, () => { nobleCbc(key, iv).encrypt(data) })
+    const rNobDec = bench(`Noble Decrypt ${ds.name}`, ds.bytes, () => { nobleCbc(key, iv).decrypt(nobleEnc) })
+    console.log(fmt(rNobEnc))
+    console.log(fmt(rNobDec))
+  }
+
   console.log()
 }
 

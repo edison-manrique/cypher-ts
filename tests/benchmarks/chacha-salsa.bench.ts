@@ -1,15 +1,26 @@
 /**
  * @module chacha-salsa.bench
  * Benchmark para ChaCha20, XChaCha20, Salsa20, XSalsa20.
- * Compara Cypher-TS contra @noble/ciphers.
+ * Compara Cypher-TS contra @noble/ciphers si está disponible.
  */
 
 import { ChaCha20, XChaCha20 } from "../../src/chacha"
 import { Salsa20, XSalsa20 } from "../../src/salsa"
-import { chacha20, xchacha20 } from "@noble/ciphers/chacha.js"
-import { salsa20, xsalsa20 } from "@noble/ciphers/salsa.js"
 
 process.chdir(import.meta.dir)
+
+let nobleCh: any = null
+let nobleXCh: any = null
+let nobleSl: any = null
+let nobleXSl: any = null
+try {
+  const nCh = await import("@noble/ciphers/chacha.js")
+  nobleCh = nCh.chacha20
+  nobleXCh = nCh.xchacha20
+  const nSl = await import("@noble/ciphers/salsa.js")
+  nobleSl = nSl.salsa20
+  nobleXSl = nSl.xsalsa20
+} catch (e) {}
 
 const WARMUP = 3
 const BENCH_MS = 2000
@@ -63,22 +74,30 @@ for (const ds of sizes) {
   console.log(`── ChaCha20/Salsa20: ${ds.name} ──\n`)
 
   const rOurCh = bench(`Cypher-TS ChaCha20 ${ds.name}`, ds.bytes, () => { new ChaCha20(key32, nonce12).encrypt(data) })
-  const rNobCh = bench(`Noble ChaCha20 ${ds.name}`, ds.bytes, () => { chacha20(key32, nonce12, data) })
+  console.log(fmt(rOurCh))
+  if (nobleCh) {
+    const rNobCh = bench(`Noble ChaCha20 ${ds.name}`, ds.bytes, () => { nobleCh(key32, nonce12, data) })
+    console.log(fmt(rNobCh))
+  }
   
+  console.log()
+
   const rOurXCh = bench(`Cypher-TS XChaCha20 ${ds.name}`, ds.bytes, () => { new XChaCha20(key32, nonce24).encrypt(data) })
-  const rNobXCh = bench(`Noble XChaCha20 ${ds.name}`, ds.bytes, () => { xchacha20(key32, nonce24, data) })
+  console.log(fmt(rOurXCh))
+  if (nobleXCh) {
+    const rNobXCh = bench(`Noble XChaCha20 ${ds.name}`, ds.bytes, () => { nobleXCh(key32, nonce24, data) })
+    console.log(fmt(rNobXCh))
+  }
+
+  console.log()
 
   const rOurSl = bench(`Cypher-TS Salsa20 ${ds.name}`, ds.bytes, () => { new Salsa20(key32, nonce8).encrypt(data) })
-  const rNobSl = bench(`Noble Salsa20 ${ds.name}`, ds.bytes, () => { salsa20(key32, nonce8, data) })
-
-  console.log(fmt(rOurCh))
-  console.log(fmt(rNobCh))
-  console.log()
-  console.log(fmt(rOurXCh))
-  console.log(fmt(rNobXCh))
-  console.log()
   console.log(fmt(rOurSl))
-  console.log(fmt(rNobSl))
+  if (nobleSl) {
+    const rNobSl = bench(`Noble Salsa20 ${ds.name}`, ds.bytes, () => { nobleSl(key32, nonce8, data) })
+    console.log(fmt(rNobSl))
+  }
+
   console.log()
 }
 

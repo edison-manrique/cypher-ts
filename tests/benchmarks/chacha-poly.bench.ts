@@ -1,13 +1,20 @@
 /**
  * @module chacha-poly.bench
  * Benchmark para ChaCha20-Poly1305 y XChaCha20-Poly1305.
- * Compara Cypher-TS contra @noble/ciphers.
+ * Compara Cypher-TS contra @noble/ciphers si está disponible.
  */
 
 import { ChaCha20Poly1305, XChaCha20Poly1305 } from "../../src/chacha/aead"
-import { chacha20poly1305, xchacha20poly1305 } from "@noble/ciphers/chacha.js"
 
 process.chdir(import.meta.dir)
+
+let nobleChPoly: any = null
+let nobleXChPoly: any = null
+try {
+  const noble = await import("@noble/ciphers/chacha.js")
+  nobleChPoly = noble.chacha20poly1305
+  nobleXChPoly = noble.xchacha20poly1305
+} catch (e) {}
 
 const WARMUP = 3
 const BENCH_MS = 2000
@@ -57,36 +64,41 @@ for (const ds of sizes) {
   const data = new Uint8Array(ds.bytes)
   for (let i = 0; i < ds.bytes; i++) data[i] = i & 0xff
 
-  // Pre-encrypt for decrypt bench
   const ourEnc = new ChaCha20Poly1305(key, nonce12).encrypt(data)
-  const nobleEnc = chacha20poly1305(key, nonce12).encrypt(data)
   const ourXEnc = new XChaCha20Poly1305(key, nonce24).encrypt(data)
-  const nobleXEnc = xchacha20poly1305(key, nonce24).encrypt(data)
 
   console.log(`── ChaCha20-Poly1305: ${ds.name} ──\n`)
 
   const rOurEnc = bench(`Cypher-TS Encrypt ${ds.name}`, ds.bytes, () => { new ChaCha20Poly1305(key, nonce12).encrypt(data) })
   const rOurDec = bench(`Cypher-TS Decrypt ${ds.name}`, ds.bytes, () => { new ChaCha20Poly1305(key, nonce12).decrypt(ourEnc) })
-  const rNobEnc = bench(`Noble Encrypt ${ds.name}`, ds.bytes, () => { chacha20poly1305(key, nonce12).encrypt(data) })
-  const rNobDec = bench(`Noble Decrypt ${ds.name}`, ds.bytes, () => { chacha20poly1305(key, nonce12).decrypt(nobleEnc) })
 
   console.log(fmt(rOurEnc))
   console.log(fmt(rOurDec))
-  console.log(fmt(rNobEnc))
-  console.log(fmt(rNobDec))
+
+  if (nobleChPoly) {
+    const nobleEnc = nobleChPoly(key, nonce12).encrypt(data)
+    const rNobEnc = bench(`Noble Encrypt ${ds.name}`, ds.bytes, () => { nobleChPoly(key, nonce12).encrypt(data) })
+    const rNobDec = bench(`Noble Decrypt ${ds.name}`, ds.bytes, () => { nobleChPoly(key, nonce12).decrypt(nobleEnc) })
+    console.log(fmt(rNobEnc))
+    console.log(fmt(rNobDec))
+  }
   console.log()
 
   console.log(`── XChaCha20-Poly1305: ${ds.name} ──\n`)
 
   const rOurXEnc = bench(`Cypher-TS XEncrypt ${ds.name}`, ds.bytes, () => { new XChaCha20Poly1305(key, nonce24).encrypt(data) })
   const rOurXDec = bench(`Cypher-TS XDecrypt ${ds.name}`, ds.bytes, () => { new XChaCha20Poly1305(key, nonce24).decrypt(ourXEnc) })
-  const rNobXEnc = bench(`Noble XEncrypt ${ds.name}`, ds.bytes, () => { xchacha20poly1305(key, nonce24).encrypt(data) })
-  const rNobXDec = bench(`Noble XDecrypt ${ds.name}`, ds.bytes, () => { xchacha20poly1305(key, nonce24).decrypt(nobleXEnc) })
 
   console.log(fmt(rOurXEnc))
   console.log(fmt(rOurXDec))
-  console.log(fmt(rNobXEnc))
-  console.log(fmt(rNobXDec))
+
+  if (nobleXChPoly) {
+    const nobleXEnc = nobleXChPoly(key, nonce24).encrypt(data)
+    const rNobXEnc = bench(`Noble XEncrypt ${ds.name}`, ds.bytes, () => { nobleXChPoly(key, nonce24).encrypt(data) })
+    const rNobXDec = bench(`Noble XDecrypt ${ds.name}`, ds.bytes, () => { nobleXChPoly(key, nonce24).decrypt(nobleXEnc) })
+    console.log(fmt(rNobXEnc))
+    console.log(fmt(rNobXDec))
+  }
   console.log()
 }
 

@@ -1,6 +1,6 @@
 {
   "name": "cypher-ts",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Librería de criptografía de alto rendimiento en TypeScript puro (AES, ChaCha20, Salsa20, GCM, Poly1305)",
   "type": "module",
   "main": "./src/index.ts",
@@ -34,9 +34,8 @@
   "author": "Edison Manrique",
   "license": "MIT",
   "devDependencies": {
+    "@noble/ciphers": "^2.1.1",
     "tsx": "^4.7.0"
   },
-  "dependencies": {
-    "@noble/ciphers": "^2.1.1"
-  }
+  "dependencies": {}
 }
