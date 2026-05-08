@@ -1,13 +1,14 @@
 /**
  * @module ctr-cmac.bench
- * Benchmark para AES-CTR y AES-CMAC (64KB, 1MB, 10MB).
- * Compara contra Node.js crypto y @noble/ciphers.
+ * Benchmark para AES-CTR y AES-CMAC.
+ * Compara Cypher-TS contra @noble/ciphers.
  */
 
-import { createCipheriv } from "node:crypto"
-import { ctr as nobleCtr } from "@noble/ciphers/aes.js"
+import { ctr as nobleCtr, cmac as nobleCmac } from "@noble/ciphers/aes.js"
 import { CTR } from "../../src/aes/ctr"
 import { CMAC } from "../../src/aes/cmac"
+
+process.chdir(import.meta.dir)
 
 const WARMUP = 3
 const BENCH_MS = 2000
@@ -35,13 +36,11 @@ function bench(name: string, dataSize: number, fn: () => void): BenchResult {
 }
 
 function fmt(r: BenchResult): string {
-  return `  ${r.name.padEnd(40)} ${r.mbPerSec.toFixed(1).padStart(8)} MB/s  ${r.avgMs.toFixed(3).padStart(10)} ms/op`
+  return `  ${r.name.padEnd(45)} ${r.mbPerSec.toFixed(1).padStart(12)} MB/s  ${r.avgMs.toFixed(3).padStart(12)} ms/op`
 }
 
-// ─── Benchmark ───────────────────────────────────────────────────────────────
-
 console.log("═══════════════════════════════════════════════════════════════════════")
-console.log("  AES-CTR & AES-CMAC Benchmark")
+console.log("  AES-CTR & AES-CMAC Benchmark (64KB, 1MB, 10MB)")
 console.log("═══════════════════════════════════════════════════════════════════════\n")
 
 const sizes = [
@@ -55,47 +54,41 @@ for (let i = 0; i < 32; i++) key[i] = i ^ 0xaa
 const nonce = new Uint8Array(16).fill(0xbb)
 
 for (const ds of sizes) {
-  console.log(`── CTR: ${ds.name} (AES-256) ──\n`)
   const data = new Uint8Array(ds.bytes)
   for (let i = 0; i < ds.bytes; i++) data[i] = i & 0xff
 
-  // Nuestra lib
+  console.log(`── AES-256-CTR: ${ds.name} ──\n`)
+
   const rOur = bench(`Cypher-TS CTR ${ds.name}`, ds.bytes, () => {
     new CTR(key, nonce).encrypt(data)
   })
-
-  // Noble
-  const rNob = bench(`Noble-Ciphers CTR ${ds.name}`, ds.bytes, () => {
+  const rNob = bench(`Noble CTR ${ds.name}`, ds.bytes, () => {
     nobleCtr(key, nonce).encrypt(data)
-  })
-
-  // Node
-  const rNod = bench(`Node.js (OpenSSL) CTR ${ds.name}`, ds.bytes, () => {
-    const c = createCipheriv("aes-256-ctr", key, nonce)
-    c.setAutoPadding(false)
-    Buffer.concat([c.update(data), c.final()])
   })
 
   console.log(fmt(rOur))
   console.log(fmt(rNob))
-  console.log(fmt(rNod))
   console.log()
 }
 
-// ─── CMAC ────────────────────────────────────────────────────────────────────
-
-const key16 = key.subarray(0, 16).slice()
+console.log("-----------------------------------------------------------------------\n")
 
 for (const ds of sizes) {
-  console.log(`── CMAC: ${ds.name} (AES-128) ──\n`)
   const data = new Uint8Array(ds.bytes)
   for (let i = 0; i < ds.bytes; i++) data[i] = i & 0xff
 
+  console.log(`── AES-128-CMAC: ${ds.name} ──\n`)
+
+  const key16 = key.subarray(0, 16)
   const rOur = bench(`Cypher-TS CMAC ${ds.name}`, ds.bytes, () => {
     CMAC.digest(key16, data)
   })
+  const rNob = bench(`Noble CMAC ${ds.name}`, ds.bytes, () => {
+    nobleCmac(key16, data)
+  })
 
   console.log(fmt(rOur))
+  console.log(fmt(rNob))
   console.log()
 }
 

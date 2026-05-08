@@ -1,7 +1,7 @@
 /**
  * @module chacha-salsa.bench
  * Benchmark para ChaCha20, XChaCha20, Salsa20, XSalsa20.
- * Compara contra @noble/ciphers.
+ * Compara Cypher-TS contra @noble/ciphers.
  */
 
 import { ChaCha20, XChaCha20 } from "../../src/chacha"
@@ -37,11 +37,11 @@ function bench(name: string, dataSize: number, fn: () => void): BenchResult {
 }
 
 function fmt(r: BenchResult): string {
-  return `  ${r.name.padEnd(42)} ${r.mbPerSec.toFixed(1).padStart(8)} MB/s  ${r.avgMs.toFixed(3).padStart(10)} ms/op`
+  return `  ${r.name.padEnd(45)} ${r.mbPerSec.toFixed(1).padStart(12)} MB/s  ${r.avgMs.toFixed(3).padStart(12)} ms/op`
 }
 
 console.log("═══════════════════════════════════════════════════════════════════════")
-console.log("  ChaCha & Salsa Benchmark")
+console.log("  ChaCha & Salsa Benchmark (64KB, 1MB, 10MB)")
 console.log("═══════════════════════════════════════════════════════════════════════\n")
 
 const sizes = [
@@ -60,52 +60,25 @@ for (const ds of sizes) {
   const data = new Uint8Array(ds.bytes)
   for (let i = 0; i < ds.bytes; i++) data[i] = i & 0xff
 
-  console.log(`── ChaCha20 ${ds.name} ──\n`)
+  console.log(`── ChaCha20/Salsa20: ${ds.name} ──\n`)
 
-  const rOur = bench(`Cypher-TS ChaCha20 ${ds.name}`, ds.bytes, () => {
-    new ChaCha20(key32, nonce12).encrypt(data)
-  })
-  const rNob = bench(`Noble ChaCha20 ${ds.name}`, ds.bytes, () => {
-    chacha20(key32, nonce12, data)
-  })
-  console.log(fmt(rOur))
-  console.log(fmt(rNob))
+  const rOurCh = bench(`Cypher-TS ChaCha20 ${ds.name}`, ds.bytes, () => { new ChaCha20(key32, nonce12).encrypt(data) })
+  const rNobCh = bench(`Noble ChaCha20 ${ds.name}`, ds.bytes, () => { chacha20(key32, nonce12, data) })
+  
+  const rOurXCh = bench(`Cypher-TS XChaCha20 ${ds.name}`, ds.bytes, () => { new XChaCha20(key32, nonce24).encrypt(data) })
+  const rNobXCh = bench(`Noble XChaCha20 ${ds.name}`, ds.bytes, () => { xchacha20(key32, nonce24, data) })
+
+  const rOurSl = bench(`Cypher-TS Salsa20 ${ds.name}`, ds.bytes, () => { new Salsa20(key32, nonce8).encrypt(data) })
+  const rNobSl = bench(`Noble Salsa20 ${ds.name}`, ds.bytes, () => { salsa20(key32, nonce8, data) })
+
+  console.log(fmt(rOurCh))
+  console.log(fmt(rNobCh))
   console.log()
-
-  console.log(`── XChaCha20 ${ds.name} ──\n`)
-
-  const rOurX = bench(`Cypher-TS XChaCha20 ${ds.name}`, ds.bytes, () => {
-    new XChaCha20(key32, nonce24).encrypt(data)
-  })
-  const rNobX = bench(`Noble XChaCha20 ${ds.name}`, ds.bytes, () => {
-    xchacha20(key32, nonce24, data)
-  })
-  console.log(fmt(rOurX))
-  console.log(fmt(rNobX))
+  console.log(fmt(rOurXCh))
+  console.log(fmt(rNobXCh))
   console.log()
-
-  console.log(`── Salsa20 ${ds.name} ──\n`)
-
-  const rOurS = bench(`Cypher-TS Salsa20 ${ds.name}`, ds.bytes, () => {
-    new Salsa20(key32, nonce8).encrypt(data)
-  })
-  const rNobS = bench(`Noble Salsa20 ${ds.name}`, ds.bytes, () => {
-    salsa20(key32, nonce8, data)
-  })
-  console.log(fmt(rOurS))
-  console.log(fmt(rNobS))
-  console.log()
-
-  console.log(`── XSalsa20 ${ds.name} ──\n`)
-
-  const rOurXS = bench(`Cypher-TS XSalsa20 ${ds.name}`, ds.bytes, () => {
-    new XSalsa20(key32, nonce24).encrypt(data)
-  })
-  const rNobXS = bench(`Noble XSalsa20 ${ds.name}`, ds.bytes, () => {
-    xsalsa20(key32, nonce24, data)
-  })
-  console.log(fmt(rOurXS))
-  console.log(fmt(rNobXS))
+  console.log(fmt(rOurSl))
+  console.log(fmt(rNobSl))
   console.log()
 }
 
