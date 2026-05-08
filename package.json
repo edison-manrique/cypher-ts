@@ -4,6 +4,11 @@
   "description": "Librería de criptografía de alto rendimiento en TypeScript puro (AES, ChaCha20, Salsa20, GCM, Poly1305)",
   "type": "module",
   "main": "./src/index.ts",
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
   "publishConfig": {
     "access": "public"
   },
